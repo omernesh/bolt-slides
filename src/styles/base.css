@@ -2127,6 +2127,7 @@ strong {
   display: flex;
   align-items: baseline;
   gap: 5px;
+  direction: ltr;
   padding: 0 12px;
   font-feature-settings: 'tnum' 1;
   user-select: none;
