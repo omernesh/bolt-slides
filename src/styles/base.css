@@ -1,4 +1,21 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+/* Fonts — self-hosted (Clash Display · General Sans · Geist Mono), files in ./fonts/ */
+@font-face { font-family: 'Clash Display'; font-style: normal; font-weight: 500; font-display: swap; src: url('./fonts/clash-display-500.woff2') format('woff2'); }
+@font-face { font-family: 'Clash Display'; font-style: normal; font-weight: 600; font-display: swap; src: url('./fonts/clash-display-600.woff2') format('woff2'); }
+@font-face { font-family: 'Clash Display'; font-style: normal; font-weight: 700; font-display: swap; src: url('./fonts/clash-display-700.woff2') format('woff2'); }
+@font-face { font-family: 'General Sans'; font-style: normal; font-weight: 400; font-display: swap; src: url('./fonts/general-sans-400.woff2') format('woff2'); }
+@font-face { font-family: 'General Sans'; font-style: normal; font-weight: 500; font-display: swap; src: url('./fonts/general-sans-500.woff2') format('woff2'); }
+@font-face { font-family: 'General Sans'; font-style: normal; font-weight: 600; font-display: swap; src: url('./fonts/general-sans-600.woff2') format('woff2'); }
+@font-face { font-family: 'Geist Mono'; font-style: normal; font-weight: 400; font-display: swap; src: url('./fonts/geist-mono-400.woff2') format('woff2'); }
+@font-face { font-family: 'Geist Mono'; font-style: normal; font-weight: 500; font-display: swap; src: url('./fonts/geist-mono-500.woff2') format('woff2'); }
+
+/* Assistant — Hebrew-first UI font (self-hosted variable woff2, files in ./fonts/).
+   One variable face per subset (wght 200–800): hebrew / latin / latin-ext. */
+@font-face { font-family: 'Assistant'; font-style: normal; font-weight: 200 800; font-display: swap; src: url('./fonts/assistant-hebrew-400.woff2') format('woff2'); unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F; }
+@font-face { font-family: 'Assistant'; font-style: normal; font-weight: 200 800; font-display: swap; src: url('./fonts/assistant-latin-400.woff2') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'Assistant'; font-style: normal; font-weight: 200 800; font-display: swap; src: url('./fonts/assistant-latin-ext-400.woff2') format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'Rubik'; font-style: normal; font-weight: 300 800; font-display: swap; src: url('./fonts/rubik-hebrew.woff2') format('woff2'); unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F; }
+@font-face { font-family: 'Rubik'; font-style: normal; font-weight: 300 800; font-display: swap; src: url('./fonts/rubik-latin.woff2') format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'Rubik'; font-style: normal; font-weight: 300 800; font-display: swap; src: url('./fonts/rubik-latin-ext.woff2') format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
 
 /* ── Reset & page ───────────────────────────────────────────────── */
 *,
@@ -13,8 +30,8 @@ body,
   margin: 0;
 }
 html {
-  color-scheme: dark;
-} /* set "light" for light decks */
+  color-scheme: light;
+} /* set "dark" for dark decks */
 body {
   background: var(--bg);
   color: var(--fg);
@@ -115,6 +132,28 @@ body {
   opacity: var(--grain);
   mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+/* PDF export rasterizes slides via html-to-image, which doesn't honor
+   mix-blend-mode — the 3.5%-opacity grain above renders as full-strength
+   noise. It's decoration, not content, so drop it for the capture. */
+.export-capture .slide::after {
+  display: none;
+}
+/* VisualDashboard's draw-ins are CSS @keyframes, not transitions, so they
+   always play their full timeline on mount regardless of isStatic — snap
+   them to their end state for capture, same as the reduced-motion rules
+   below do for the live app. */
+.export-capture .dline,
+.export-capture .dspark path {
+  stroke-dashoffset: 0 !important;
+  animation: none !important;
+}
+.export-capture .dfill-area {
+  opacity: 1;
+}
+.export-capture .dbar-track span {
+  transform: scaleY(1) !important;
+  animation: none !important;
 }
 
 /* ── Fluid type atoms ───────────────────────────────────────────── */
@@ -2111,6 +2150,21 @@ strong {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+/* Export-in-progress spinner, swapped in for the download icon */
+.noir-spinner {
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-top-color: #e8e8ea;
+  animation: noir-spin 0.7s linear infinite;
+}
+@keyframes noir-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Left thumbnail rail */

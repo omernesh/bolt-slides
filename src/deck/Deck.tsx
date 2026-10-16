@@ -11,6 +11,7 @@ import type { ReactElement, ReactNode } from 'react';
 import { MotionConfig } from 'framer-motion';
 import { DeckCtx } from './DeckContext';
 import Annotator, { type Stroke } from './Annotator';
+import { exportPdf } from './export';
 import {
   IconSidebar,
   IconGrid,
@@ -21,6 +22,7 @@ import {
   IconShrink,
   IconPresent,
   IconClose,
+  IconDownload,
 } from './icons';
 
 /* ── The paged presentation engine + the Slidev-style chrome (dock + rail).
@@ -28,7 +30,7 @@ import {
      → / ↓ / Space   next (reveals the next <Build>, then the next slide)
      ← / ↑           previous            S sidebar     G grid view
      Home / End      first / last        A annotate    P presenter (new tab)
-     F fullscreen    H hide/show the UI
+     F fullscreen    H hide/show the UI  E export PDF
    Copy verbatim; theme only via the :root tokens. ───────────────────────── */
 
 const fmt = (s: number) =>
@@ -113,6 +115,10 @@ export default function Deck({ children }: { children: ReactNode }) {
       }
     }
   );
+  const [exportBusy, setExportBusy] = useState<{
+    done: number;
+    total: number;
+  } | null>(null);
 
   // per-slide build maxima (so going back restores the right click state) and
   // per-slide annotations (so drawings persist on the slide they were made).
@@ -192,6 +198,16 @@ export default function Deck({ children }: { children: ReactNode }) {
       window.location.pathname + '?presenter=1' + window.location.hash;
     window.open(url, 'deck-presenter');
   }, [isPresenter]);
+  const runExport = useCallback(async () => {
+    setExportBusy({ done: 0, total });
+    try {
+      await exportPdf(slides, (done, tot) => setExportBusy({ done, total: tot }));
+    } catch (err) {
+      alert(`Export failed: ${err instanceof Error ? err.message : err}`);
+    } finally {
+      setExportBusy(null);
+    }
+  }, [slides, total]);
 
   // keyboard
   useEffect(() => {
@@ -251,6 +267,10 @@ export default function Deck({ children }: { children: ReactNode }) {
         case 'H':
           setUiHidden((v) => !v);
           break;
+        case 'e':
+        case 'E':
+          runExport();
+          break;
         case 'Escape':
           setRailOpen(false);
           setGridOpen(false);
@@ -261,7 +281,17 @@ export default function Deck({ children }: { children: ReactNode }) {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [next, prev, go, total, toggleRail, toggleGrid, toggleFs, openPresenter]);
+  }, [
+    next,
+    prev,
+    go,
+    total,
+    toggleRail,
+    toggleGrid,
+    toggleFs,
+    openPresenter,
+    runExport,
+  ]);
 
   // safety net: if the authored deck kept the placeholder tab title, derive
   // one from the current slide's heading so shared links look right.
@@ -356,16 +386,15 @@ export default function Deck({ children }: { children: ReactNode }) {
 
   // prev / counter / next — rendered inside the pill on desktop, in its own
   // pill above the tools on phones (only one is visible at a time).
-  const navCluster = (
+    const navCluster = (
     <>
       <button
         className="noir-icon-btn"
-        data-tip="Previous"
-        aria-label="Previous"
-        disabled={!hasPrev}
-        onClick={prev}
+        data-tip="Next"
+        disabled={!hasNext}
+        onClick={next}
       >
-        <IconLeft />
+        <IconRight />
       </button>
       <div className="noir-counter">
         <span className="noir-counter-now">{slide + 1}</span>
@@ -373,12 +402,11 @@ export default function Deck({ children }: { children: ReactNode }) {
       </div>
       <button
         className="noir-icon-btn"
-        data-tip="Next"
-        aria-label="Next"
-        disabled={!hasNext}
-        onClick={next}
+        data-tip="Previous"
+        disabled={!hasPrev}
+        onClick={prev}
       >
-        <IconRight />
+        <IconLeft />
       </button>
     </>
   );
@@ -407,7 +435,6 @@ export default function Deck({ children }: { children: ReactNode }) {
             <button
               className="noir-icon-btn sm"
               data-tip="Close"
-              aria-label="Close sidebar"
               onClick={() => setRailOpen(false)}
             >
               <IconClose />
@@ -438,7 +465,6 @@ export default function Deck({ children }: { children: ReactNode }) {
               <button
                 className="noir-icon-btn sm"
                 data-tip="Close"
-                aria-label="Close grid view"
                 onClick={() => setGridOpen(false)}
               >
                 <IconClose />
@@ -495,8 +521,6 @@ export default function Deck({ children }: { children: ReactNode }) {
             <button
               className={'noir-icon-btn' + (railOpen ? ' on' : '')}
               data-tip="Sidebar (S)"
-              aria-label="Sidebar"
-              aria-pressed={railOpen}
               onClick={toggleRail}
             >
               <IconSidebar />
@@ -504,8 +528,6 @@ export default function Deck({ children }: { children: ReactNode }) {
             <button
               className={'noir-icon-btn' + (gridOpen ? ' on' : '')}
               data-tip="Grid view (G)"
-              aria-label="Grid view"
-              aria-pressed={gridOpen}
               onClick={toggleGrid}
             >
               <IconGrid />
@@ -516,8 +538,6 @@ export default function Deck({ children }: { children: ReactNode }) {
             <button
               className={'noir-icon-btn' + (drawing ? ' on' : '')}
               data-tip="Annotate (A)"
-              aria-label="Annotate"
-              aria-pressed={drawing}
               onClick={() => setDrawing((v) => !v)}
             >
               <IconPencil />
@@ -525,7 +545,6 @@ export default function Deck({ children }: { children: ReactNode }) {
             <button
               className="noir-icon-btn"
               data-tip={fs ? 'Exit fullscreen (F)' : 'Fullscreen (F)'}
-              aria-label={fs ? 'Exit fullscreen' : 'Enter fullscreen'}
               onClick={toggleFs}
             >
               {fs ? <IconShrink /> : <IconExpand />}
@@ -533,10 +552,22 @@ export default function Deck({ children }: { children: ReactNode }) {
             <button
               className="noir-icon-btn"
               data-tip="Presenter — new tab (P)"
-              aria-label="Open presenter view"
               onClick={openPresenter}
             >
               <IconPresent />
+            </button>
+            <span className="noir-sep" />
+            <button
+              className="noir-icon-btn"
+              data-tip={
+                exportBusy
+                  ? `Exporting — ${exportBusy.done}/${exportBusy.total}`
+                  : 'Export PDF (E)'
+              }
+              disabled={!!exportBusy}
+              onClick={runExport}
+            >
+              {exportBusy ? <span className="noir-spinner" /> : <IconDownload />}
             </button>
           </div>
         </div>
